@@ -1,43 +1,18 @@
 #![no_std]
 #![no_main]
 
+use arduino_hal::I2c;
 use embedded_graphics::{
     pixelcolor::BinaryColor,
     prelude::*,
     primitives::{PrimitiveStyleBuilder, Rectangle},
 };
 use panic_halt as _;
-use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
+use ssd1306::{mode::BufferedGraphicsMode, prelude::*, I2CDisplayInterface, Ssd1306};
 
 #[arduino_hal::entry]
 fn main() -> ! {
-    let dp = arduino_hal::Peripherals::take().unwrap();
-    let pins = arduino_hal::pins!(dp);
-    let mut serial = arduino_hal::default_serial!(dp, pins, 57600);
-
-    ufmt::uwriteln!(&mut serial, "Init I2C\n").unwrap();
-    let i2c = arduino_hal::I2c::new(
-        dp.TWI,
-        pins.a4.into_pull_up_input(),
-        pins.a5.into_pull_up_input(),
-        50000,
-    );
-
-    ufmt::uwriteln!(&mut serial, "Init OLED\n").unwrap();
-    let interface = I2CDisplayInterface::new(i2c);
-    let mut display = Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate0)
-        .into_buffered_graphics_mode();
-    display.init().unwrap();
-
-    let style_on = PrimitiveStyleBuilder::new()
-        .stroke_width(2)
-        .stroke_color(BinaryColor::On)
-        .build();
-    let style_off = PrimitiveStyleBuilder::new()
-        .stroke_width(2)
-        .stroke_color(BinaryColor::Off)
-        .build();
-
+    let mut screen = Screen::new();
     let mut x = 0_i32;
     let mut y = 0_i32;
     let mut ix = 1;
@@ -46,10 +21,7 @@ fn main() -> ! {
     loop {
         arduino_hal::delay_ms(10);
 
-        Rectangle::new(Point::new(x, y), Size::new(1, 1))
-            .into_styled(style_off)
-            .draw(&mut display)
-            .unwrap();
+        screen.draw_ball(&x, &y, BinaryColor::Off);
 
         x += ix;
         y += iy;
@@ -60,11 +32,47 @@ fn main() -> ! {
             iy = -iy;
         }
 
-        Rectangle::new(Point::new(x, y), Size::new(1, 1))
-            .into_styled(style_on)
-            .draw(&mut display)
-            .unwrap();
+        screen.draw_ball(&x, &y, BinaryColor::On);
+        screen.flush();
+    }
 
-        display.flush().unwrap();
+    struct Screen {
+        display:
+            Ssd1306<I2CInterface<I2c>, DisplaySize128x64, BufferedGraphicsMode<DisplaySize128x64>>,
+    }
+
+    impl Screen {
+        fn new() -> Self {
+            let dp = arduino_hal::Peripherals::take().unwrap();
+            let pins = arduino_hal::pins!(dp);
+            let i2c = arduino_hal::I2c::new(
+                dp.TWI,
+                pins.a4.into_pull_up_input(),
+                pins.a5.into_pull_up_input(),
+                50000,
+            );
+            let interface = I2CDisplayInterface::new(i2c);
+            let mut display = Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate0)
+                .into_buffered_graphics_mode();
+            display.init().unwrap();
+            display.set_pixel(1, 1, true);
+            display.flush().unwrap();
+            Screen { display }
+        }
+
+        fn draw_ball(&mut self, x: &i32, y: &i32, c: BinaryColor) {
+            let style = PrimitiveStyleBuilder::new()
+                .stroke_width(2)
+                .stroke_color(c)
+                .build();
+            Rectangle::new(Point::new(*x, *y), Size::new(1, 1))
+                .into_styled(style)
+                .draw(&mut self.display)
+                .unwrap();
+        }
+
+        fn flush(&mut self) {
+            self.display.flush().unwrap();
+        }
     }
 }
