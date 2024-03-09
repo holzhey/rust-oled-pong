@@ -2,14 +2,12 @@
 #![no_main]
 
 use embedded_graphics::{
-    mono_font::{ascii::FONT_6X10, MonoTextStyleBuilder},
     pixelcolor::BinaryColor,
     prelude::*,
-    primitives::{Circle, PrimitiveStyleBuilder, Rectangle, Triangle},
-    text::{Baseline, Text},
+    primitives::{PrimitiveStyleBuilder, Rectangle},
 };
 use panic_halt as _;
-use ssd1306::{mode::BufferedGraphicsMode, prelude::*, I2CDisplayInterface, Ssd1306};
+use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
 
 #[arduino_hal::entry]
 fn main() -> ! {
