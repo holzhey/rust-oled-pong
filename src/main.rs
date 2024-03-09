@@ -25,7 +25,11 @@ fn main() -> ! {
     ufmt::uwriteln!(&mut serial, "Init display interface\n").unwrap();
     let interface = I2CDisplayInterface::new(i2c);
     ufmt::uwriteln!(&mut serial, "Init display\n").unwrap();
-    let mut screen = Screen::new(interface);
+
+    let mut display = Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate0)
+        .into_buffered_graphics_mode();
+    display.init().unwrap();
+    let mut screen = Screen::new(display);
 
     let mut x = 0_i32;
     let mut y = 0_i32;
@@ -49,38 +53,39 @@ fn main() -> ! {
         screen.draw_ball(&x, &y, BinaryColor::On);
         screen.flush();
     }
+}
 
-    struct Screen<CLOCK> {
+struct Screen<CLOCK> {
+    display: Ssd1306<
+        I2CInterface<I2c<CLOCK>>,
+        DisplaySize128x64,
+        BufferedGraphicsMode<DisplaySize128x64>,
+    >,
+}
+
+impl<CLOCK> Screen<CLOCK> {
+    fn new(
         display: Ssd1306<
             I2CInterface<I2c<CLOCK>>,
             DisplaySize128x64,
             BufferedGraphicsMode<DisplaySize128x64>,
         >,
+    ) -> Self {
+        Screen { display }
     }
 
-    impl<CLOCK> Screen<CLOCK> {
-        fn new(interface: I2CInterface<I2c<CLOCK>>) -> Self {
-            let mut display = Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate0)
-                .into_buffered_graphics_mode();
-            display.init().unwrap();
-            display.set_pixel(1, 1, true);
-            display.flush().unwrap();
-            Screen { display }
-        }
+    fn draw_ball(&mut self, x: &i32, y: &i32, c: BinaryColor) {
+        let style = PrimitiveStyleBuilder::new()
+            .stroke_width(2)
+            .stroke_color(c)
+            .build();
+        Rectangle::new(Point::new(*x, *y), Size::new(1, 1))
+            .into_styled(style)
+            .draw(&mut self.display)
+            .unwrap();
+    }
 
-        fn draw_ball(&mut self, x: &i32, y: &i32, c: BinaryColor) {
-            let style = PrimitiveStyleBuilder::new()
-                .stroke_width(2)
-                .stroke_color(c)
-                .build();
-            Rectangle::new(Point::new(*x, *y), Size::new(1, 1))
-                .into_styled(style)
-                .draw(&mut self.display)
-                .unwrap();
-        }
-
-        fn flush(&mut self) {
-            self.display.flush().unwrap();
-        }
+    fn flush(&mut self) {
+        self.display.flush().unwrap();
     }
 }
