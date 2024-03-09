@@ -16,9 +16,6 @@ fn main() -> ! {
     let dp = arduino_hal::Peripherals::take().unwrap();
     let pins = arduino_hal::pins!(dp);
     let mut serial = arduino_hal::default_serial!(dp, pins, 57600);
-    ufmt::uwriteln!(&mut serial, "Arduino ready!\n").unwrap();
-
-    let mut led = pins.d13.into_output();
 
     ufmt::uwriteln!(&mut serial, "Init I2C\n").unwrap();
     let i2c = arduino_hal::I2c::new(
@@ -34,23 +31,42 @@ fn main() -> ! {
         .into_buffered_graphics_mode();
     display.init().unwrap();
 
-    let style = PrimitiveStyleBuilder::new()
-        .stroke_width(1)
+    let style_on = PrimitiveStyleBuilder::new()
+        .stroke_width(2)
         .stroke_color(BinaryColor::On)
         .build();
+    let style_off = PrimitiveStyleBuilder::new()
+        .stroke_width(2)
+        .stroke_color(BinaryColor::Off)
+        .build();
 
-    Rectangle::new(Point::new(0, 0), Size::new(127, 63))
-        .into_styled(style)
-        .draw(&mut display)
-        .unwrap();
-
-    display.set_pixel(3, 3, true);
-
-    ufmt::uwriteln!(&mut serial, "Flush text\n").unwrap();
-    display.flush().unwrap();
+    let mut x = 0_i32;
+    let mut y = 0_i32;
+    let mut ix = 1;
+    let mut iy = 1;
 
     loop {
-        led.toggle();
-        arduino_hal::delay_ms(1000);
+        arduino_hal::delay_ms(10);
+
+        Rectangle::new(Point::new(x, y), Size::new(1, 1))
+            .into_styled(style_off)
+            .draw(&mut display)
+            .unwrap();
+
+        x += ix;
+        y += iy;
+        if !(1..=126).contains(&x) {
+            ix = -ix;
+        }
+        if !(1..=62).contains(&y) {
+            iy = -iy;
+        }
+
+        Rectangle::new(Point::new(x, y), Size::new(1, 1))
+            .into_styled(style_on)
+            .draw(&mut display)
+            .unwrap();
+
+        display.flush().unwrap();
     }
 }
