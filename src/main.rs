@@ -1,7 +1,7 @@
 #![no_std]
 #![no_main]
 
-use arduino_hal::I2c;
+use arduino_hal::hal::I2c;
 use embedded_graphics::{
     pixelcolor::BinaryColor,
     prelude::*,
@@ -12,7 +12,21 @@ use ssd1306::{mode::BufferedGraphicsMode, prelude::*, I2CDisplayInterface, Ssd13
 
 #[arduino_hal::entry]
 fn main() -> ! {
-    let mut screen = Screen::new();
+    let dp = arduino_hal::Peripherals::take().unwrap();
+    let pins = arduino_hal::pins!(dp);
+    let mut serial = arduino_hal::default_serial!(dp, pins, 57600);
+    ufmt::uwriteln!(&mut serial, "Init I2C\n").unwrap();
+    let i2c = arduino_hal::I2c::new(
+        dp.TWI,
+        pins.a4.into_pull_up_input(),
+        pins.a5.into_pull_up_input(),
+        50000,
+    );
+    ufmt::uwriteln!(&mut serial, "Init display interface\n").unwrap();
+    let interface = I2CDisplayInterface::new(i2c);
+    ufmt::uwriteln!(&mut serial, "Init display\n").unwrap();
+    let mut screen = Screen::new(interface);
+
     let mut x = 0_i32;
     let mut y = 0_i32;
     let mut ix = 1;
@@ -36,22 +50,16 @@ fn main() -> ! {
         screen.flush();
     }
 
-    struct Screen {
-        display:
-            Ssd1306<I2CInterface<I2c>, DisplaySize128x64, BufferedGraphicsMode<DisplaySize128x64>>,
+    struct Screen<CLOCK> {
+        display: Ssd1306<
+            I2CInterface<I2c<CLOCK>>,
+            DisplaySize128x64,
+            BufferedGraphicsMode<DisplaySize128x64>,
+        >,
     }
 
-    impl Screen {
-        fn new() -> Self {
-            let dp = arduino_hal::Peripherals::take().unwrap();
-            let pins = arduino_hal::pins!(dp);
-            let i2c = arduino_hal::I2c::new(
-                dp.TWI,
-                pins.a4.into_pull_up_input(),
-                pins.a5.into_pull_up_input(),
-                50000,
-            );
-            let interface = I2CDisplayInterface::new(i2c);
+    impl<CLOCK> Screen<CLOCK> {
+        fn new(interface: I2CInterface<I2c<CLOCK>>) -> Self {
             let mut display = Ssd1306::new(interface, DisplaySize128x64, DisplayRotation::Rotate0)
                 .into_buffered_graphics_mode();
             display.init().unwrap();
