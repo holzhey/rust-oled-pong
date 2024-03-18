@@ -1,10 +1,12 @@
 #![no_std]
 #![no_main]
 
+use core::fmt::Debug;
+
 use embedded_graphics::{
     pixelcolor::BinaryColor,
     prelude::*,
-    primitives::{PrimitiveStyleBuilder, Rectangle},
+    primitives::{PrimitiveStyle, PrimitiveStyleBuilder, Rectangle},
 };
 use panic_halt as _;
 use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
@@ -46,10 +48,7 @@ fn main() -> ! {
     loop {
         arduino_hal::delay_ms(10);
 
-        Rectangle::new(Point::new(x, y), Size::new(1, 1))
-            .into_styled(style_off)
-            .draw(&mut display)
-            .unwrap();
+        draw_ball(x, y, &mut display, style_off);
 
         x += ix;
         y += iy;
@@ -60,11 +59,21 @@ fn main() -> ! {
             iy = -iy;
         }
 
-        Rectangle::new(Point::new(x, y), Size::new(1, 1))
-            .into_styled(style_on)
-            .draw(&mut display)
-            .unwrap();
-
+        draw_ball(x, y, &mut display, style_on);
         display.flush().unwrap();
+    }
+
+    fn draw_ball<D: DrawTarget<Color = BinaryColor>>(
+        x: i32,
+        y: i32,
+        display: &mut D,
+        style: PrimitiveStyle<BinaryColor>,
+    ) where
+        <D as embedded_graphics::draw_target::DrawTarget>::Error: Debug,
+    {
+        Rectangle::new(Point::new(x, y), Size::new(1, 1))
+            .into_styled(style)
+            .draw(display)
+            .unwrap();
     }
 }
