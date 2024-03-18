@@ -46,7 +46,7 @@ fn main() -> ! {
     let mut ball = sprites::Ball::default();
 
     loop {
-        arduino_hal::delay_ms(10);
+        arduino_hal::delay_ms(5);
         draw_ball(ball.get_x(), ball.get_y(), &mut display, STYLE_OFF);
         ball.update();
         draw_ball(ball.get_x(), ball.get_y(), &mut display, STYLE_ON);
