@@ -10,8 +10,14 @@ pub struct Ball {
     iy: i32,
 }
 
+impl Default for Ball {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Ball {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Ball {
             x: LEFT,
             y: TOP,

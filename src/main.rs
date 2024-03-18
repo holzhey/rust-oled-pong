@@ -43,7 +43,7 @@ fn main() -> ! {
         .into_buffered_graphics_mode();
     display.init().unwrap();
 
-    let mut ball = sprites::Ball::new();
+    let mut ball = sprites::Ball::default();
 
     loop {
         arduino_hal::delay_ms(10);
