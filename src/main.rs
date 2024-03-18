@@ -21,6 +21,11 @@ static STYLE_OFF: PrimitiveStyle<BinaryColor> = PrimitiveStyleBuilder::new()
     .stroke_color(BinaryColor::Off)
     .build();
 
+const TOP: i32 = 0;
+const BOTTOM: i32 = 63;
+const LEFT: i32 = 0;
+const RIGHT: i32 = 127;
+
 #[arduino_hal::entry]
 fn main() -> ! {
     let dp = arduino_hal::Peripherals::take().unwrap();
@@ -41,8 +46,8 @@ fn main() -> ! {
         .into_buffered_graphics_mode();
     display.init().unwrap();
 
-    let mut x = 0_i32;
-    let mut y = 0_i32;
+    let mut x = LEFT;
+    let mut y = TOP;
     let mut ix = 1;
     let mut iy = 1;
 
@@ -53,10 +58,10 @@ fn main() -> ! {
 
         x += ix;
         y += iy;
-        if !(1..=126).contains(&x) {
+        if !(LEFT + 1..=RIGHT - 1).contains(&x) {
             ix = -ix;
         }
-        if !(1..=62).contains(&y) {
+        if !(TOP + 1..=BOTTOM - 1).contains(&y) {
             iy = -iy;
         }
 
