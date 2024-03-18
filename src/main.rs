@@ -11,6 +11,8 @@ use embedded_graphics::{
 use panic_halt as _;
 use ssd1306::{prelude::*, I2CDisplayInterface, Ssd1306};
 
+pub mod sprites;
+
 static STYLE_ON: PrimitiveStyle<BinaryColor> = PrimitiveStyleBuilder::new()
     .stroke_width(2)
     .stroke_color(BinaryColor::On)
@@ -20,11 +22,6 @@ static STYLE_OFF: PrimitiveStyle<BinaryColor> = PrimitiveStyleBuilder::new()
     .stroke_width(2)
     .stroke_color(BinaryColor::Off)
     .build();
-
-const TOP: i32 = 0;
-const BOTTOM: i32 = 63;
-const LEFT: i32 = 0;
-const RIGHT: i32 = 127;
 
 #[arduino_hal::entry]
 fn main() -> ! {
@@ -46,26 +43,13 @@ fn main() -> ! {
         .into_buffered_graphics_mode();
     display.init().unwrap();
 
-    let mut x = LEFT;
-    let mut y = TOP;
-    let mut ix = 1;
-    let mut iy = 1;
+    let mut ball = sprites::Ball::new();
 
     loop {
         arduino_hal::delay_ms(10);
-
-        draw_ball(x, y, &mut display, STYLE_OFF);
-
-        x += ix;
-        y += iy;
-        if !(LEFT + 1..=RIGHT - 1).contains(&x) {
-            ix = -ix;
-        }
-        if !(TOP + 1..=BOTTOM - 1).contains(&y) {
-            iy = -iy;
-        }
-
-        draw_ball(x, y, &mut display, STYLE_ON);
+        draw_ball(ball.get_x(), ball.get_y(), &mut display, STYLE_OFF);
+        ball.update();
+        draw_ball(ball.get_x(), ball.get_y(), &mut display, STYLE_ON);
         display.flush().unwrap();
     }
 
